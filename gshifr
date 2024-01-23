@@ -1,0 +1,112 @@
+import os
+import sys
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, QFileDialog, QInputDialog, QLineEdit
+from PyQt5.QtGui import QColor
+from PyQt5.QtCore import Qt, QRect, QPropertyAnimation
+import pyAesCrypt
+import time
+
+def encrypt(file, password):
+    # задаём размер буфера
+    buffer_size = 512 * 1024
+    # вызываем метод шифрования
+    pyAesCrypt.encryptFile(
+        str(file),
+        str(file) + ".crp",
+        password,
+        buffer_size   )
+    time.sleep(1)
+    # удаляем исходный файл
+    os.remove(file)
+
+
+def decrypt(file, password):
+    buffer_size = 512 * 1024
+    # вызываем метод расшифровки
+    pyAesCrypt.decryptFile(
+        str(file),
+        str(os.path.splitext(file)[0]),
+        password,
+        buffer_size   )
+    time.sleep(1)
+    # удаляем исходный файл
+    os.remove(file)
+
+
+class FileCryptorApp(QWidget):
+    def __init__(self):
+        super(FileCryptorApp, self).__init__()
+
+        self.setWindowTitle("File Cryptor")
+        self.setGeometry(100, 100, 500, 200)
+
+        # Интерфейс
+        self.label = QLabel("Выберите файл для обработки", self)
+        self.button_encrypt = QPushButton("Зашифровать", self)
+        self.button_decrypt = QPushButton("Дешифровать", self)
+
+        # Размещение виджетов
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.label)
+        layout.addWidget(self.button_encrypt)
+        layout.addWidget(self.button_decrypt)
+
+        # События
+        self.button_encrypt.clicked.connect(self.encrypt_file)
+        self.button_decrypt.clicked.connect(self.decrypt_file)
+
+    def encrypt_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Выберите файл для шифрования', '', 'All Files (*);;Python Files (*.py)')
+
+        if file_path:
+            password, ok = QInputDialog.getText(self, 'Введите пароль', 'Пожалуйста, введите пароль:', QLineEdit.Password)
+
+            if ok:
+                self.label.setText("Шифрование файла...")
+
+                # Анимация изменения цвета кнопки
+                self.animate_button(self.button_encrypt, QColor(0, 255, 0))
+
+                try:
+                    encrypt(file_path, password)
+                    self.label.setText(f"Файл '{os.path.splitext(file_path)[0]}' зашифрован")
+                except Exception as ex:
+                    self.label.setText(f"Ошибка: {ex}")
+
+                # Восстанавливаем цвет кнопки после анимации
+                self.animate_button(self.button_encrypt, QColor(255, 255, 255))
+
+    def decrypt_file(self):
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Выберите файл для дешифрования', '', 'All Files (*);;Python Files (*.py)')
+
+        if file_path:
+            password, ok = QInputDialog.getText(self, 'Введите пароль', 'Пожалуйста, введите пароль:', QLineEdit.Password)
+
+            if ok:
+                self.label.setText("Дешифрование файла...")
+
+                # Анимация изменения цвета кнопки
+                self.animate_button(self.button_decrypt, QColor(0, 255, 0))
+
+                try:
+                    decrypt(file_path, password)
+                    self.label.setText(f"Файл '{os.path.splitext(file_path)[0]}' дешифрован")
+                except Exception as ex:
+                    self.label.setText(f"Ошибка: {ex}")
+
+                # Восстанавливаем цвет кнопки после анимации
+                self.animate_button(self.button_decrypt, QColor(255, 255, 255))
+
+    def animate_button(self, button, color):
+        # Создаем анимацию изменения цвета фона кнопки
+        anim = QPropertyAnimation(button, b"styleSheet")
+        anim.setDuration(1000)
+        anim.setStartValue(button.styleSheet())
+        anim.setEndValue(f"background-color: rgb({color.red()}, {color.green()}, {color.blue()});")
+        anim.start(QPropertyAnimation.DeleteWhenStopped)
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    file_cryptor_app = FileCryptorApp()
+    file_cryptor_app.show()
+    sys.exit(app.exec_())

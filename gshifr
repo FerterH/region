@@ -1,109 +1,129 @@
 import os
 import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, QFileDialog, QInputDialog, QLineEdit
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, QFileDialog, QInputDialog, \
+    QLineEdit, QProgressBar
 from PyQt5.QtGui import QColor
-from PyQt5.QtCore import Qt, QRect, QPropertyAnimation
+from PyQt5.QtCore import Qt, QPropertyAnimation, QTimer
 import pyAesCrypt
 import time
 
-def encrypt(file, password):
-    # задаём размер буфера
+
+def encrypt(file, password, progress_bar):
     buffer_size = 512 * 1024
-    # вызываем метод шифрования
     pyAesCrypt.encryptFile(
         str(file),
         str(file) + ".crp",
         password,
-        buffer_size   )
-    time.sleep(1)
-    # удаляем исходный файл
-    os.remove(file)
+        buffer_size
+    )
+    for i in range(101):
+        progress_bar.setValue(i)
+        time.sleep(0.01)
 
 
-def decrypt(file, password):
+def decrypt(file, password, progress_bar):
     buffer_size = 512 * 1024
-    # вызываем метод расшифровки
     pyAesCrypt.decryptFile(
         str(file),
         str(os.path.splitext(file)[0]),
         password,
-        buffer_size   )
-    time.sleep(1)
-    # удаляем исходный файл
+        buffer_size
+    )
+
     os.remove(file)
+    for i in range(101):
+        progress_bar.setValue(i)
+        time.sleep(0.01)
 
 
 class FileCryptorApp(QWidget):
     def __init__(self):
         super(FileCryptorApp, self).__init__()
 
-        self.setWindowTitle("File Cryptor")
-        self.setGeometry(100, 100, 500, 200)
+        self.setWindowTitle("File Cryptor by Ярослав Веретенчев")
+        self.setGeometry(100, 100, 500, 220)
 
         # Интерфейс
         self.label = QLabel("Выберите файл для обработки", self)
-        self.button_encrypt = QPushButton("Зашифровать", self)
-        self.button_decrypt = QPushButton("Дешифровать", self)
+        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setStyleSheet("font-size: 12pt;")
 
-        # Размещение виджетов
+        self.welcome_label = QLabel("Добро пожаловать в File Cryptor", self)
+        self.welcome_label.setAlignment(Qt.AlignCenter)
+        self.welcome_label.setStyleSheet("font-size: 18pt;")
+
+        self.progress_bar = QProgressBar(self)
+        self.progress_bar.setValue(0)
+
+        self.button_encrypt = QPushButton("Зашифровать", self)
+        self.button_decrypt = QPushButton("Расшифровать", self)
+
         layout = QVBoxLayout(self)
+        layout.addWidget(self.welcome_label)
         layout.addWidget(self.label)
+        layout.addWidget(self.progress_bar)
         layout.addWidget(self.button_encrypt)
         layout.addWidget(self.button_decrypt)
 
-        # События
         self.button_encrypt.clicked.connect(self.encrypt_file)
         self.button_decrypt.clicked.connect(self.decrypt_file)
 
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.show_completion_message)
+
     def encrypt_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Выберите файл для шифрования', '', 'All Files (*);;Python Files (*.py)')
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Выберите файл для шифрования', '',
+                                                   'All Files (*);;Python Files (*.py)')
 
         if file_path:
-            password, ok = QInputDialog.getText(self, 'Введите пароль', 'Пожалуйста, введите пароль:', QLineEdit.Password)
+            password, ok = QInputDialog.getText(self, 'Введите пароль', 'Пожалуйста, введите пароль:',
+                                                QLineEdit.Password)
 
             if ok:
                 self.label.setText("Шифрование файла...")
-
-                # Анимация изменения цвета кнопки
                 self.animate_button(self.button_encrypt, QColor(0, 255, 0))
 
                 try:
-                    encrypt(file_path, password)
+                    self.progress_bar.setValue(0)
+                    encrypt(file_path, password, self.progress_bar)
                     self.label.setText(f"Файл '{os.path.splitext(file_path)[0]}' зашифрован")
                 except Exception as ex:
                     self.label.setText(f"Ошибка: {ex}")
 
-                # Восстанавливаем цвет кнопки после анимации
                 self.animate_button(self.button_encrypt, QColor(255, 255, 255))
 
     def decrypt_file(self):
-        file_path, _ = QFileDialog.getOpenFileName(self, 'Выберите файл для дешифрования', '', 'All Files (*);;Python Files (*.py)')
+        file_path, _ = QFileDialog.getOpenFileName(self, 'Выберите файл для дешифрования', '',
+                                                   'All Files (*);;Python Files (*.py)')
 
         if file_path:
-            password, ok = QInputDialog.getText(self, 'Введите пароль', 'Пожалуйста, введите пароль:', QLineEdit.Password)
+            password, ok = QInputDialog.getText(self, 'Введите пароль', 'Пожалуйста, введите пароль:',
+                                                QLineEdit.Password)
 
             if ok:
-                self.label.setText("Дешифрование файла...")
-
-                # Анимация изменения цвета кнопки
+                self.label.setText("Расшифровывание файла...")
                 self.animate_button(self.button_decrypt, QColor(0, 255, 0))
 
                 try:
-                    decrypt(file_path, password)
-                    self.label.setText(f"Файл '{os.path.splitext(file_path)[0]}' дешифрован")
+                    self.progress_bar.setValue(0)
+                    decrypt(file_path, password, self.progress_bar)
+                    self.label.setText(f"Файл '{os.path.splitext(file_path)[0]}' расшифрован")
                 except Exception as ex:
                     self.label.setText(f"Ошибка: {ex}")
 
-                # Восстанавливаем цвет кнопки после анимации
                 self.animate_button(self.button_decrypt, QColor(255, 255, 255))
 
     def animate_button(self, button, color):
-        # Создаем анимацию изменения цвета фона кнопки
         anim = QPropertyAnimation(button, b"styleSheet")
         anim.setDuration(1000)
         anim.setStartValue(button.styleSheet())
         anim.setEndValue(f"background-color: rgb({color.red()}, {color.green()}, {color.blue()});")
         anim.start(QPropertyAnimation.DeleteWhenStopped)
+
+    def show_completion_message(self):
+        self.timer.stop()
+        self.label.setText("Операция завершена")
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

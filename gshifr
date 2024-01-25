@@ -1,13 +1,11 @@
-import os
-import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, QFileDialog, QInputDialog, \
-    QLineEdit, QProgressBar
-from PyQt5.QtGui import QColor
-from PyQt5.QtCore import Qt, QPropertyAnimation, QTimer
+import os, sys, time
 import pyAesCrypt
-import time
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QPushButton, QLabel, \
+    QFileDialog, QInputDialog, QLineEdit, QProgressBar
+from PyQt5.QtGui import QColor, QIcon
+from PyQt5.QtCore import Qt, QPropertyAnimation, QTimer
 
-
+        #функция шифрования
 def encrypt(file, password, progress_bar):
     buffer_size = 512 * 1024
     pyAesCrypt.encryptFile(
@@ -16,11 +14,13 @@ def encrypt(file, password, progress_bar):
         password,
         buffer_size
     )
+    os.remove(file)
     for i in range(101):
         progress_bar.setValue(i)
         time.sleep(0.01)
 
 
+        #функция расшифровки
 def decrypt(file, password, progress_bar):
     buffer_size = 512 * 1024
     pyAesCrypt.decryptFile(
@@ -29,21 +29,26 @@ def decrypt(file, password, progress_bar):
         password,
         buffer_size
     )
-
     os.remove(file)
     for i in range(101):
         progress_bar.setValue(i)
         time.sleep(0.01)
 
 
+
+                #интерфейс
 class FileCryptorApp(QWidget):
     def __init__(self):
         super(FileCryptorApp, self).__init__()
-
+        
+        # Создания окна программы
         self.setWindowTitle("File Cryptor by Ярослав Веретенчев")
         self.setGeometry(100, 100, 500, 220)
 
-        # Интерфейс
+        # Добавление иконки
+        icon_path = os.path.join(os.path.dirname(__file__), 'icon.png') 
+        self.setWindowIcon(QIcon(icon_path))
+
         self.label = QLabel("Выберите файл для обработки", self)
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setStyleSheet("font-size: 12pt;")
@@ -51,10 +56,12 @@ class FileCryptorApp(QWidget):
         self.welcome_label = QLabel("Добро пожаловать в File Cryptor", self)
         self.welcome_label.setAlignment(Qt.AlignCenter)
         self.welcome_label.setStyleSheet("font-size: 18pt;")
-
+        
+        #Добавление показателя прогресса выполнения обработки
         self.progress_bar = QProgressBar(self)
         self.progress_bar.setValue(0)
-
+        
+        #Добавление кнопок
         self.button_encrypt = QPushButton("Зашифровать", self)
         self.button_decrypt = QPushButton("Расшифровать", self)
 
@@ -74,7 +81,8 @@ class FileCryptorApp(QWidget):
     def encrypt_file(self):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Выберите файл для шифрования', '',
                                                    'All Files (*);;Python Files (*.py)')
-
+        
+        #проверка пароля
         if file_path:
             password, ok = QInputDialog.getText(self, 'Введите пароль', 'Пожалуйста, введите пароль:',
                                                 QLineEdit.Password)
@@ -95,7 +103,7 @@ class FileCryptorApp(QWidget):
     def decrypt_file(self):
         file_path, _ = QFileDialog.getOpenFileName(self, 'Выберите файл для дешифрования', '',
                                                    'All Files (*);;Python Files (*.py)')
-
+        #проверка пароля
         if file_path:
             password, ok = QInputDialog.getText(self, 'Введите пароль', 'Пожалуйста, введите пароль:',
                                                 QLineEdit.Password)
@@ -113,6 +121,7 @@ class FileCryptorApp(QWidget):
 
                 self.animate_button(self.button_decrypt, QColor(255, 255, 255))
 
+        #анимация кнопок
     def animate_button(self, button, color):
         anim = QPropertyAnimation(button, b"styleSheet")
         anim.setDuration(1000)
@@ -124,7 +133,7 @@ class FileCryptorApp(QWidget):
         self.timer.stop()
         self.label.setText("Операция завершена")
 
-
+    #запуск программы
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     file_cryptor_app = FileCryptorApp()
